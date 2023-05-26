@@ -1,0 +1,166 @@
+#!/bin/sh -e
+
+show_usage(){
+  (
+    echo "Usage: $0 [options]"
+    echo
+    echo "Options:"
+    echo "  --pay_type <pay_type>  Pay type (Card, Konbini, Paypay)"
+    echo "  --job_code <job_code>  Job code (AUTH, CAPTURE, CANCEL, REFUND)"
+    echo "  --amount <amount>      Amount"
+    echo "  -h, --help             Display help message"
+  ) >&2
+  exit 1
+}
+
+parse_option_error_exit() {
+    echo "ERROR: $1 requires a non-empty option argument." 1>&2
+    exit 1
+}
+
+if ! type curl >/dev/null 2>&1; then
+  echo "ERROR: curl command not found." 1>&2
+  exit 1
+fi
+
+load_env_dir="$(dirname "$(realpath "$0")")"
+load_env() {
+    load_env_dir="$1"
+
+    if [ -f "$load_env_dir/.env" ]; then
+        . "$load_env_dir/.env"
+        return
+    fi
+
+    load_env "$(dirname "$load_env_dir")"
+}
+
+load_env "$load_env_dir"
+
+pay_type="Card"
+id=""
+job_code="AUTH"
+amount="2980"
+tax=""
+client_field_1=""
+client_field_2=""
+client_field_3=""
+tds_type=""
+td_tenant_name=""
+subscription_id=""
+tds2_type=""
+
+while :; do
+    case $1 in
+        -h|-\?|--help) show_usage   ;;
+        --pay_type)
+            if [ -n "$2" ]; then
+                pay_type=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --id)
+            if [ -n "$2" ]; then
+                id=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --job_code)
+            if [ -n "$2" ]; then
+                job_code=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --amount)
+            if [ -n "$2" ]; then
+                amount=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --tax)
+            if [ -n "$2" ]; then
+                tax=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --client_field_1)
+            if [ -n "$2" ]; then
+                client_field_1=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --client_field_2)
+            if [ -n "$2" ]; then
+                client_field_2=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --client_field_3)
+            if [ -n "$2" ]; then
+                client_field_3=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --tds_type)
+            if [ -n "$2" ]; then
+                tds_type=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --td_tenant_name)
+            if [ -n "$2" ]; then
+                td_tenant_name=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --subscription_id)
+            if [ -n "$2" ]; then
+                subscription_id=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --tds2_type)
+            if [ -n "$2" ]; then
+                tds2_type=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --) shift; break ;;
+        -?*) echo "WARN: Unknown option (ignored): $1" 1>&2 ;;
+        *) break ;;
+    esac
+
+    shift
+done
+
+curl \
+  -X POST \
+  -H "Content-Type: application/json;charset=UTF-8" \
+  -H "Authorization: Bearer ${FINCODE_API_SECRET_KEY}" \
+  -d "{ 
+      \"pay_type\":\"${pay_type}\",
+      \"id\":\"${id}\",
+      \"job_code\":\"${job_code}\",
+      \"amount\":\"${amount}\",
+      \"tax\":\"${tax}\",
+      \"client_field_1\":\"${client_field_1}\",
+      \"client_field_2\":\"${client_field_2}\",
+      \"client_field_3\":\"${client_field_3}\",
+      \"tds_type\":\"${tds_type}\",
+      \"td_tenant_name\":\"${td_tenant_name}\",
+      \"subscription_id\":\"${subscription_id}\",
+      \"tds2_type\":\"${tds2_type}\"
+    }" \
+  "${FINCODE_API_URL}"/payments

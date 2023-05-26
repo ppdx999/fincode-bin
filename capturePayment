@@ -1,0 +1,107 @@
+#!/bin/sh -e
+
+show_usage(){
+  (
+    echo "Usage: $0 [options...] <order_id>"
+    echo
+    echo "Options:"
+    echo "   -h, --help                 show this help"
+    echo "       --pay_type             Card | Konbini | Paypay"
+    echo "       --access_id            Access ID"
+    echo "       --method               1 - 一括払い, 2 - 分割払い, 5 - リボ払い"
+    echo "       --pay_times            支払回数"
+    echo
+  ) 1>&2
+  exit 1
+}
+
+parse_option_error_exit() {
+    echo "ERROR: $1 requires a non-empty option argument." 1>&2
+    exit 1
+}
+
+if ! type curl >/dev/null 2>&1; then
+  echo "ERROR: curl command not found." 1>&2
+  exit 1
+fi
+
+load_env_dir="$(dirname "$(realpath "$0")")"
+load_env() {
+    load_env_dir="$1"
+
+    if [ -f "$load_env_dir/.env" ]; then
+        . "$load_env_dir/.env"
+        return
+    fi
+
+    load_env "$(dirname "$load_env_dir")"
+}
+load_env "$load_env_dir"
+
+
+pay_type="Card"
+access_id=""
+method=""
+pay_times=""
+
+
+while :; do
+    case $1 in
+        -h|-\?|--help) show_usage   ;;
+        --pay_type)
+            if [ -n "$2" ]; then
+                pay_type=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --access_id)
+            if [ -n "$2" ]; then
+                access_id=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --method)
+            if [ -n "$2" ]; then
+                method=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --pay_times)
+            if [ -n "$2" ]; then
+                pay_times=$2; shift
+            else
+              parse_option_error_exit "$1"
+            fi
+            ;;
+        --) shift; break ;;
+        -?*) echo "WARN: Unknown option (ignored): $1" 1>&2 ;;
+        *) break ;;
+    esac
+    shift
+done
+
+order_id=$1
+
+if [ -z "$order_id" ]; then
+  show_usage
+fi
+
+if [ -z "$access_id" ]; then
+  echo "ERROR: --access_id is required." 1>&2
+  exit 1
+fi
+
+curl \
+  -X PUT \
+  -H "Content-Type: application/json;charset=UTF-8" \
+  -H "Authorization: Bearer ${FINCODE_API_SECRET_KEY}" \
+  -d "{ 
+      \"pay_type\":\"${pay_type}\",
+      \"access_id\":\"${access_id}\",
+      \"method\":\"${method}\",
+      \"pay_times\":\"${pay_times}\"
+    }" \
+  "${FINCODE_API_URL}"/payments/"${order_id}"/capture
