@@ -35,7 +35,7 @@ load_env() {
 }
 load_env "$load_env_dir"
 
-pay_type="Card"
+pay_type="${DEFAULT_PAY_TYPE}"
 
 while :; do
     case $1 in

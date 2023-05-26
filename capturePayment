@@ -39,7 +39,7 @@ load_env() {
 load_env "$load_env_dir"
 
 
-pay_type="Card"
+pay_type="${DEFAULT_PAY_TYPE}"
 access_id=""
 method=""
 pay_times=""

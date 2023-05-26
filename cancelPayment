@@ -37,7 +37,7 @@ load_env() {
 }
 load_env "$load_env_dir"
 
-pay_type="Card"
+pay_type="${DEFAULT_PAY_TYPE}"
 access_id=""
 
 while [ $# -gt 0 ]; do
